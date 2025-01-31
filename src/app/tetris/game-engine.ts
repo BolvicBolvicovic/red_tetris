@@ -1,6 +1,8 @@
+type PieceType = "cube" | "stick" | "L" | "J" | "S" | "Z" | "T";
+
 export interface Piece {
   color: number,
-  type: string,
+  type: PieceType,
   current_shape: number,
   boxes: Box[]
   can_rotate: boolean,
@@ -15,4 +17,5 @@ export interface GameEngine {
   current_board: number[][],
   current_piece: Piece
   game_over: boolean,
+  score: number,
 }

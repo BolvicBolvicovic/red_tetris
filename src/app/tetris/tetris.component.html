@@ -1,1 +1,14 @@
-<p>tetris works!</p>
+<section class="flex flex-row justify-between gap-x-2 pl-38">
+  <table class="bg-transparent rounded">
+    <tr *ngFor="let row of tetrisService.add_current_piece_to_board(gameEngine).current_board">
+      <td *ngFor="let num of row"
+          class="w-4 h-4 sm:w-8 sm:h-8 rounded-lg"
+          [style.backgroundColor]="getCellColor(num)">
+      </td>
+    </tr>
+  </table>
+  <section class="flex flex-col gap-y-2 w-40">
+    <button (click)="switch_state()" class="bg-red-400 rounded w-[8lvh] hover:bg-red-300 active:bg-red-500 cursor-pointer">{{state}}</button>
+    <h1>Score: {{gameEngine.score}}</h1>
+  </section>
+</section>

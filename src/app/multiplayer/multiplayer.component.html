@@ -1,0 +1,20 @@
+<section class="h-[50lvh] flex items-center justify-center text-center">
+  <button
+    *ngIf="state === 'lookForAGame'"
+    (click)="lookForAGame()"
+    class="w-[20lvh] flex flex-col hover:text-sky-200 hover:scale-110 transition-transform duration-100 cursor-pointer"
+  >
+    look for game
+  </button>
+  <h1
+    *ngIf="state === 'lookingForAGame'"
+    class="w-[32lvh] flex flex-col hover:text-sky-200 cursor-progress"
+  >
+    {{lookingForAGame}}
+  </h1>
+  <section
+    *ngIf="state === 'game'"
+    class="flex flex-row items-center justify-center gap-x-5"
+  >
+  </section>
+</section>
