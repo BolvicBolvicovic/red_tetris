@@ -9,6 +9,7 @@ export class TetrisService {
 
   readonly board_height: number = 20;
   readonly board_lenght: number = 10;
+  readonly undestructable_line_color: number = 0xd9d9d9;
 
   newGameEngine(): GameEngine {
     return {
@@ -463,23 +464,34 @@ export class TetrisService {
       }
   }
 
+  add_undestructable_line(gameEngine: GameEngine, lines: number): GameEngine {
+    return {
+      current_board: gameEngine.current_board
+        .slice(lines)
+        .concat(Array.from({length: lines}, ()=> Array.from({ length: this.board_lenght}, () => this.undestructable_line_color))),
+      current_piece: gameEngine.current_piece,
+      game_over: false,
+      score: gameEngine.score,
+    };
+  }
+
   add_current_piece_to_board(gameEngine: GameEngine): GameEngine {
     let new_board: number[][] = gameEngine.current_board.map(row => [...row]);
-    for (const {x, y} of gameEngine.current_piece.boxes) {
+    gameEngine.current_piece.boxes.forEach(({x, y}) => {
       new_board[y][x] = new_board[y][x] === 0
         ? gameEngine.current_piece.color
         : 0xb2b2ff;
-    }
+    });
     return {
       current_board: new_board,
       current_piece: this.generate_random_piece(),
       game_over: false,
       score: gameEngine.score,
-    }
+    };
   }
 
   next_board_state(gameEngine: GameEngine): GameEngine {
-    const no_full_row_board: number[][] = gameEngine.current_board.filter((row) => row.includes(0));
+    const no_full_row_board: number[][] = gameEngine.current_board.filter((row) => row.includes(0) || row.includes(this.undestructable_line_color));
     const add_x_rows: number = gameEngine.current_board.length - no_full_row_board.length;
     const missing_rows: number[][] = Array.from({ length: add_x_rows }, () => [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     const next_state: GameEngine = {
