@@ -25,7 +25,11 @@ export class MultiplayerComponent {
   readonly timePerTurn: number = 500;
 
   getCellColor(num: number, mask: number = 0xffffff): string {
-    return num !== 0 ? '#' + (num & mask).toString(16).padStart(6, "0") : '#000000';
+    return num !== 0
+      ? num === this.tetrisService.undestructable_line_color
+        ? '#' + (num).toString(16).padStart(6, "0")
+        : '#' + (num & mask).toString(16).padStart(6, "0")
+      : '#000000';
   }
 
   lookForAGame() {

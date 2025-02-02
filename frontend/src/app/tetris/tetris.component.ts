@@ -14,7 +14,7 @@ export class TetrisComponent implements OnInit {
   state: string = "play";
   timePerTurn: number = 500;
   scoreLimit: number = 500;
-  gameEngine: GameEngine = this.tetrisService.newGameEngine();
+  gameEngine: GameEngine = this.tetrisService.newGameEngine(true);
 
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
@@ -48,15 +48,13 @@ export class TetrisComponent implements OnInit {
     const game_loop = () => {
       if (this.gameEngine.game_over)
         this.state = "over";
-      if (this.gameEngine.current_piece === undefined)
-        this.gameEngine = this.tetrisService.addRandomPiece(this.gameEngine);
       if (this.gameEngine.score >= this.scoreLimit) {
-        this.scoreLimit *= 1.2;
+        this.scoreLimit *= 1.8;
         update_game_loop();
         return;
       }
       if (this.state != "play" && !this.gameEngine.game_over)
-        this.gameEngine = this.tetrisService.translate_piece_down(this.gameEngine);
+        this.gameEngine = this.tetrisService.addRandomPiece(this.tetrisService.translate_piece_down(this.gameEngine));
     }
 
     let interval = setInterval(game_loop, this.timePerTurn);

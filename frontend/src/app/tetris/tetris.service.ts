@@ -11,10 +11,10 @@ export class TetrisService {
   readonly board_lenght: number = 10;
   readonly undestructable_line_color: number = 0xd9d9d9;
 
-  newGameEngine(): GameEngine {
+  newGameEngine(random: boolean = false): GameEngine {
     return {
       current_board: this.new_board(),
-      current_piece: undefined,
+      current_piece: random ? this.generate_random_piece() : undefined,
       game_over: false,
       score: 0,
     };
@@ -76,12 +76,21 @@ export class TetrisService {
   }
 
   addRandomPiece(gameEngine: GameEngine): GameEngine {
-    return {
+    if (gameEngine.current_piece !== undefined) return gameEngine;
+    const next_state: GameEngine = {
       current_board: gameEngine.current_board,
       current_piece: this.generate_random_piece(),
       game_over: gameEngine.game_over,
       score: gameEngine.score,
-    }
+    };
+    return this.can_exist(next_state)
+      ? next_state
+      : {
+        current_board: gameEngine.current_board,
+        current_piece: gameEngine.current_piece,
+        game_over: true,
+        score: gameEngine.score,
+      };
   }
 
   new_board(): number[][] {
@@ -405,6 +414,7 @@ export class TetrisService {
   }
 
   translate_piece_down(gameEngine: GameEngine): GameEngine {
+    if (gameEngine.current_piece === undefined) return gameEngine;
     for (const {x, y} of gameEngine.current_piece!.boxes) {
       if (y + 1 === this.board_height || gameEngine.current_board[y + 1][x] !== 0)
         return this.next_board_state(this.add_current_piece_to_board(gameEngine));
@@ -439,7 +449,7 @@ export class TetrisService {
   }
 
   translate_piece_side(gameEngine: GameEngine, side: number): GameEngine {
-    if (side != 1 && side != -1) return gameEngine;
+    if ((side != 1 && side != -1) || gameEngine.current_piece === undefined) return gameEngine;
     for (const {x, y} of gameEngine.current_piece!.boxes) {
       if (x + side === this.board_lenght || x + side === -1 || gameEngine.current_board[y][x + side] !== 0)
         return gameEngine;
@@ -485,8 +495,10 @@ export class TetrisService {
   }
 
   add_current_piece_to_board(gameEngine: GameEngine): GameEngine {
+    if (gameEngine.current_piece === undefined) return gameEngine;
     let new_board: number[][] = gameEngine.current_board.map(row => [...row]);
     gameEngine.current_piece!.boxes.forEach(({x, y}) => {
+      if (y === -1) return;
       new_board[y][x] = new_board[y][x] === 0
         ? gameEngine.current_piece!.color
         : 0xb2b2ff;
@@ -503,19 +515,11 @@ export class TetrisService {
     const no_full_row_board: number[][] = gameEngine.current_board.filter((row) => row.includes(0) || row.includes(this.undestructable_line_color));
     const add_x_rows: number = gameEngine.current_board.length - no_full_row_board.length;
     const missing_rows: number[][] = Array.from({ length: add_x_rows }, () => [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-    const next_state: GameEngine = {
+    return {
       current_board: missing_rows.concat(no_full_row_board),
       current_piece: gameEngine.current_piece,
       game_over: false,
-      score: gameEngine.score + 100 * add_x_rows + 10,
+      score: gameEngine.score + (100 * add_x_rows) + 10,
     };
-    return this.can_exist(next_state)
-      ? next_state
-      : {
-        current_board: missing_rows.concat(no_full_row_board),
-        current_piece: gameEngine.current_piece,
-        game_over: true,
-        score: gameEngine.score,
-      };
   }
 }
