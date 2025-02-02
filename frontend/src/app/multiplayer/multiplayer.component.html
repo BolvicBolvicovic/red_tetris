@@ -1,11 +1,53 @@
-<section class="h-[70lvh] flex items-center justify-center text-center">
-  <button
+<section class="flex flex-row justify-center items-center w-[70lvh] h-[50lvh] text-center">
+  <section
     *ngIf="state === 'lookForAGame'"
-    (click)="lookForAGame()"
-    class="w-[20lvh] flex flex-col hover:text-sky-200 hover:scale-110 transition-transform duration-100 cursor-pointer"
+    class="flex flex-row gap-x-8"
   >
-    look for game
-  </button>
+    <button
+      (click)="lookForAGame()"
+      class="w-[20lvh] flex flex-col hover:text-sky-200 hover:scale-110 transition-transform duration-100 cursor-pointer"
+    >
+      look for a game
+    </button>
+    <button
+      (click)="this.state = 'joinARoom';"
+      class="w-[20lvh] flex flex-col hover:text-sky-200 hover:scale-110 transition-transform duration-100 cursor-pointer"
+    >
+      join/create a room
+    </button>
+  </section>
+  <div
+    *ngIf="state === 'joinARoom'"
+    class="flex flex-col justify-center items-center gap-y-4">
+      <input
+        #idInput
+        class="w-full px-4 py-2 rounded-lg
+          text-center
+          border border-red-300
+          focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent
+          hover:placeholder:text-sky-200
+          shadow-sm
+          hover:border-gray-400
+          disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+        placeholder="enter room id"
+      />
+      <div
+        class="flex flex-row gap-x-8"
+      >
+        <button
+          (click)="joinARoom(idInput.value)"
+          class="w-[10lvh] flex flex-col hover:text-sky-200 hover:scale-110 transition-transform duration-100 cursor-pointer"
+        >
+          join
+        </button>
+        <button
+          (click)="createARoom(idInput.value)"
+          class="w-[10lvh] flex flex-col hover:text-sky-200 hover:scale-110 transition-transform duration-100 cursor-pointer"
+        >
+          create
+        </button>
+      </div>
+  </div>
   <h1
     *ngIf="state === 'lookingForAGame'"
     class="w-[32lvh] flex flex-col hover:text-sky-200 cursor-progress"
@@ -31,7 +73,7 @@
       <h1 class="w-[32lvh] flex flex-col hover:text-sky-200">blue</h1>
       <div class="grid gap-0"
            [ngClass]="'grid-cols-' + tetrisService.add_current_piece_to_board(multiplayer.opp_game).current_board[0].length">
-        <div *ngFor="let num of tetrisService.add_current_piece_to_board(multiplayer.opp_game).current_board.flat()"
+        <div *ngFor="let num of multiplayer.opp_game.current_board.flat()"
              class="w-4 h-4 sm:w-8 sm:h-8 rounded-lg"
              [style.backgroundColor]="getCellColor(num, blueMask)">
         </div>

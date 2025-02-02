@@ -32,6 +32,14 @@ export class MultiplayerComponent {
       : '#000000';
   }
 
+  joinARoom(id: string) {
+    this.state = id;
+  }
+
+  createARoom(id: string) {
+    this.state = id;
+  }
+
   lookForAGame() {
     this.state = "lookingForAGame";
     let interval = setInterval(() => {
