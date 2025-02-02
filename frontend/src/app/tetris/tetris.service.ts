@@ -14,7 +14,7 @@ export class TetrisService {
   newGameEngine(): GameEngine {
     return {
       current_board: this.new_board(),
-      current_piece: this.generate_random_piece(),
+      current_piece: undefined,
       game_over: false,
       score: 0,
     };
@@ -75,23 +75,32 @@ export class TetrisService {
     return pieces[Math.floor(Math.random() * pieces.length)];
   }
 
+  addRandomPiece(gameEngine: GameEngine): GameEngine {
+    return {
+      current_board: gameEngine.current_board,
+      current_piece: this.generate_random_piece(),
+      game_over: gameEngine.game_over,
+      score: gameEngine.score,
+    }
+  }
+
   new_board(): number[][] {
     return Array.from({ length: this.board_height }, () => [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   }
 
   rotate_piece(gameEngine: GameEngine): GameEngine {
-    if (!gameEngine.current_piece.can_rotate) return gameEngine;
-    const current_boxes: Box[] = gameEngine.current_piece.boxes;
+    if (!gameEngine.current_piece!.can_rotate) return gameEngine;
+    const current_boxes: Box[] = gameEngine.current_piece!.boxes;
     const match = {
       "cube":  (): Piece => ({
-        color: gameEngine.current_piece.color,
-        type: gameEngine.current_piece.type,
-        current_shape: gameEngine.current_piece.current_shape,
-        boxes: gameEngine.current_piece.boxes,
+        color: gameEngine.current_piece!.color,
+        type: gameEngine.current_piece!.type,
+        current_shape: gameEngine.current_piece!.current_shape,
+        boxes: gameEngine.current_piece!.boxes,
         can_rotate: false,
       }),
       "stick": (): Piece => {
-        switch (gameEngine.current_piece.current_shape) {
+        switch (gameEngine.current_piece!.current_shape) {
           case 1:
             const flat_stick: Box[] = [
               { x: current_boxes[0].x - 1, y: current_boxes[0].y + 2 },
@@ -100,8 +109,8 @@ export class TetrisService {
               { x: current_boxes[3].x + 2, y: current_boxes[3].y - 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 2,
               boxes: flat_stick,
               can_rotate: true,
@@ -114,18 +123,18 @@ export class TetrisService {
               { x: current_boxes[3].x - 2, y: current_boxes[3].y + 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 1,
               boxes: up_stick,
               can_rotate: true,
             }
           default:
-            return gameEngine.current_piece;
+            return gameEngine.current_piece!;
         }
       },
       "L":     (): Piece => {
-        switch (gameEngine.current_piece.current_shape) {
+        switch (gameEngine.current_piece!.current_shape) {
           case 1:
             const L_right: Box[] = [
               { x: current_boxes[0].x + 1, y: current_boxes[0].y + 1 },
@@ -134,8 +143,8 @@ export class TetrisService {
               { x: current_boxes[3].x - 2, y: current_boxes[3].y     },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 2,
               boxes: L_right,
               can_rotate: true,
@@ -148,8 +157,8 @@ export class TetrisService {
               { x: current_boxes[3].x    , y: current_boxes[3].y - 2 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 3,
               boxes: L_upsidedown,
               can_rotate: true,
@@ -162,8 +171,8 @@ export class TetrisService {
               { x: current_boxes[3].x + 2, y: current_boxes[3].y     },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 4,
               boxes: L_left,
               can_rotate: true,
@@ -176,18 +185,18 @@ export class TetrisService {
               { x: current_boxes[3].x    , y: current_boxes[3].y + 2 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 1,
               boxes: L,
               can_rotate: true,
             }
           default:
-            return gameEngine.current_piece;
+            return gameEngine.current_piece!;
         }
       },
       "J":     (): Piece => {
-        switch (gameEngine.current_piece.current_shape) {
+        switch (gameEngine.current_piece!.current_shape) {
           case 1:
             const J_right: Box[] = [
               { x: current_boxes[0].x    , y: current_boxes[0].y - 2 },
@@ -196,8 +205,8 @@ export class TetrisService {
               { x: current_boxes[3].x + 1, y: current_boxes[3].y + 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 2,
               boxes: J_right,
               can_rotate: true,
@@ -210,8 +219,8 @@ export class TetrisService {
               { x: current_boxes[3].x - 1, y: current_boxes[3].y + 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 3,
               boxes: J_upsidedown,
               can_rotate: true,
@@ -224,8 +233,8 @@ export class TetrisService {
               { x: current_boxes[3].x - 1, y: current_boxes[3].y - 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 4,
               boxes: J_left,
               can_rotate: true,
@@ -238,18 +247,18 @@ export class TetrisService {
               { x: current_boxes[3].x + 1, y: current_boxes[3].y - 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 1,
               boxes: J,
               can_rotate: true,
             }
           default:
-            return gameEngine.current_piece;
+            return gameEngine.current_piece!;
         }
       },
       "S":     (): Piece => {
-        switch (gameEngine.current_piece.current_shape) {
+        switch (gameEngine.current_piece!.current_shape) {
           case 1:
             const S_up: Box[] = [
               { x: current_boxes[0].x    , y: current_boxes[0].y - 2 },
@@ -258,8 +267,8 @@ export class TetrisService {
               { x: current_boxes[3].x - 1, y: current_boxes[3].y + 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 2,
               boxes: S_up,
               can_rotate: true,
@@ -272,18 +281,18 @@ export class TetrisService {
               { x: current_boxes[3].x + 1, y: current_boxes[3].y - 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 1,
               boxes: S_flat,
               can_rotate: true,
             }
           default:
-            return gameEngine.current_piece;
+            return gameEngine.current_piece!;
         }
       },
       "Z":     (): Piece => {
-        switch (gameEngine.current_piece.current_shape) {
+        switch (gameEngine.current_piece!.current_shape) {
           case 1:
             const Z_up: Box[] = [
               { x: current_boxes[0].x + 1, y: current_boxes[0].y - 1 },
@@ -292,8 +301,8 @@ export class TetrisService {
               { x: current_boxes[3].x - 2, y: current_boxes[3].y     },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 2,
               boxes: Z_up,
               can_rotate: true,
@@ -306,18 +315,18 @@ export class TetrisService {
               { x: current_boxes[3].x + 2, y: current_boxes[3].y     },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 1,
               boxes: Z_flat,
               can_rotate: true,
             }
           default:
-            return gameEngine.current_piece;
+            return gameEngine.current_piece!;
         }
       },
       "T":     (): Piece => {
-        switch (gameEngine.current_piece.current_shape) {
+        switch (gameEngine.current_piece!.current_shape) {
           case 1:
             const T_left: Box[] = [
               { x: current_boxes[0].x + 1, y: current_boxes[0].y + 1 },
@@ -326,8 +335,8 @@ export class TetrisService {
               { x: current_boxes[3].x - 1, y: current_boxes[3].y + 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 2,
               boxes: T_left,
               can_rotate: true,
@@ -340,8 +349,8 @@ export class TetrisService {
               { x: current_boxes[3].x + 1, y: current_boxes[3].y - 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 3,
               boxes: T_up,
               can_rotate: true,
@@ -354,8 +363,8 @@ export class TetrisService {
               { x: current_boxes[3].x - 1, y: current_boxes[3].y + 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 4,
               boxes: T_right,
               can_rotate: true,
@@ -368,18 +377,18 @@ export class TetrisService {
               { x: current_boxes[3].x + 1, y: current_boxes[3].y - 1 },
             ];
             return {
-              color: gameEngine.current_piece.color,
-              type: gameEngine.current_piece.type,
+              color: gameEngine.current_piece!.color,
+              type: gameEngine.current_piece!.type,
               current_shape: 1,
               boxes: T,
               can_rotate: true,
             }
           default:
-            return gameEngine.current_piece;
+            return gameEngine.current_piece!;
         }
       },
     };
-    const rotated_piece: Piece = match[gameEngine.current_piece.type]?.() || gameEngine.current_piece;
+    const rotated_piece: Piece = match[gameEngine.current_piece!.type!]?.() || gameEngine.current_piece;
     return {
       current_board: gameEngine.current_board,
       current_piece: rotated_piece,
@@ -389,22 +398,22 @@ export class TetrisService {
   }
 
   can_exist(gameEngine: GameEngine): boolean {
-    for (const {x, y} of gameEngine.current_piece.boxes) {
+    for (const {x, y} of gameEngine.current_piece!.boxes) {
       if (x < 0 || x >= this.board_lenght || y < 0 || y >= this.board_height || gameEngine.current_board[y][x] !== 0) return false;
     }
     return true;
   }
 
   translate_piece_down(gameEngine: GameEngine): GameEngine {
-    for (const {x, y} of gameEngine.current_piece.boxes) {
+    for (const {x, y} of gameEngine.current_piece!.boxes) {
       if (y + 1 === this.board_height || gameEngine.current_board[y + 1][x] !== 0)
         return this.next_board_state(this.add_current_piece_to_board(gameEngine));
     }
     const next_pos_piece: Piece = {
-      color: gameEngine.current_piece.color,
-      type: gameEngine.current_piece.type,
-      current_shape: gameEngine.current_piece.current_shape,
-      boxes: gameEngine.current_piece.boxes.map(({x, y}) => ({x, y: y + 1})),
+      color: gameEngine.current_piece!.color,
+      type: gameEngine.current_piece!.type,
+      current_shape: gameEngine.current_piece!.current_shape,
+      boxes: gameEngine.current_piece!.boxes.map(({x, y}) => ({x, y: y + 1})),
       can_rotate: true,
     }
     const new_gameEngine_with_rotating_piece: GameEngine = {
@@ -431,15 +440,15 @@ export class TetrisService {
 
   translate_piece_side(gameEngine: GameEngine, side: number): GameEngine {
     if (side != 1 && side != -1) return gameEngine;
-    for (const {x, y} of gameEngine.current_piece.boxes) {
+    for (const {x, y} of gameEngine.current_piece!.boxes) {
       if (x + side === this.board_lenght || x + side === -1 || gameEngine.current_board[y][x + side] !== 0)
         return gameEngine;
     }
     const next_pos_piece: Piece = {
-      color: gameEngine.current_piece.color,
-      type: gameEngine.current_piece.type,
-      current_shape: gameEngine.current_piece.current_shape,
-      boxes: gameEngine.current_piece.boxes.map(({x, y}) => ({x: x + side, y})),
+      color: gameEngine.current_piece!.color,
+      type: gameEngine.current_piece!.type,
+      current_shape: gameEngine.current_piece!.current_shape,
+      boxes: gameEngine.current_piece!.boxes.map(({x, y}) => ({x: x + side, y})),
       can_rotate: true,
     }
     const new_gameEngine_with_rotating_piece: GameEngine = {
@@ -465,26 +474,26 @@ export class TetrisService {
   }
 
   add_undestructable_line(gameEngine: GameEngine, lines: number): GameEngine {
-    return {
+    return this.next_board_state({
       current_board: gameEngine.current_board
         .slice(lines)
         .concat(Array.from({length: lines}, ()=> Array.from({ length: this.board_lenght}, () => this.undestructable_line_color))),
       current_piece: gameEngine.current_piece,
-      game_over: false,
+      game_over: gameEngine.game_over,
       score: gameEngine.score,
-    };
+    });
   }
 
   add_current_piece_to_board(gameEngine: GameEngine): GameEngine {
     let new_board: number[][] = gameEngine.current_board.map(row => [...row]);
-    gameEngine.current_piece.boxes.forEach(({x, y}) => {
+    gameEngine.current_piece!.boxes.forEach(({x, y}) => {
       new_board[y][x] = new_board[y][x] === 0
-        ? gameEngine.current_piece.color
+        ? gameEngine.current_piece!.color
         : 0xb2b2ff;
     });
     return {
       current_board: new_board,
-      current_piece: this.generate_random_piece(),
+      current_piece: undefined,
       game_over: false,
       score: gameEngine.score,
     };

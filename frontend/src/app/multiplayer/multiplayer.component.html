@@ -40,4 +40,10 @@
       </table>
     </div>
   </section>
+  <h1
+    *ngIf="state === 'gameOver'"
+    class="w-[32lvh] flex flex-col hover:text-sky-200 cursor-progress"
+  >
+    {{game_over_message}}
+  </h1>
 </section>

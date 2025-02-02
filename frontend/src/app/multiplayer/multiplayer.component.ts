@@ -20,6 +20,7 @@ export class MultiplayerComponent {
   state: string = "lookForAGame"
   lookingForAGame: string = "looking for a game";
   previous_score: number = 0;
+  game_over_message: string = "";
   readonly blueMask: number = 0x0000ff;
   readonly timePerTurn: number = 500;
 
@@ -28,7 +29,7 @@ export class MultiplayerComponent {
   }
 
   lookForAGame() {
-    this.state = "lookingForAGame"
+    this.state = "lookingForAGame";
     let interval = setInterval(() => {
       this.lookingForAGame.length < 21
         ? this.lookingForAGame += "."
@@ -37,14 +38,16 @@ export class MultiplayerComponent {
 
     setTimeout(() => {
       clearInterval(interval);
+      this.multiplayer.my_game = this.tetrisService.newGameEngine();
+      this.multiplayer.opp_game = this.tetrisService.newGameEngine();
       this.state = "game";
       this.start_loop();
     }, 1000);
   }
   start_loop() {
     const game_loop = () => {
-      if (this.multiplayer.game_over || this.multiplayer.my_game.game_over) {
-        this.state = "lookForAGame";
+      if (this.multiplayer.opp_game.game_over || this.multiplayer.my_game.game_over) {
+        this.state = "gameOver";
         end_game_loop();
         return;
       }
@@ -56,13 +59,17 @@ export class MultiplayerComponent {
     let interval = setInterval(game_loop, this.timePerTurn);
 
     let end_game_loop = () => {
+      this.multiplayer.my_game.game_over
+        ? this.game_over_message = "you lost"
+        : this.game_over_message = "you won"
       clearInterval(interval);
+      setTimeout(() => this.state = "lookForAGame", 3000);
     }
   }
 
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
-    if (this.state != "play" && !this.multiplayer.my_game.game_over)
+    if (!this.multiplayer.opp_game.game_over && !this.multiplayer.my_game.game_over)
       switch (event.key) {
         case 'ArrowDown':
           this.multiplayer.my_game = this.tetrisService.translate_piece_down(this.multiplayer.my_game);

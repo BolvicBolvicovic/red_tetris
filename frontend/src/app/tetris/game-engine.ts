@@ -15,7 +15,7 @@ export interface Box {
 
 export interface GameEngine {
   current_board: number[][],
-  current_piece: Piece
+  current_piece: Piece | undefined,
   game_over: boolean,
   score: number,
 }

@@ -48,6 +48,8 @@ export class TetrisComponent implements OnInit {
     const game_loop = () => {
       if (this.gameEngine.game_over)
         this.state = "over";
+      if (this.gameEngine.current_piece === undefined)
+        this.gameEngine = this.tetrisService.addRandomPiece(this.gameEngine);
       if (this.gameEngine.score >= this.scoreLimit) {
         this.scoreLimit *= 1.2;
         update_game_loop();
