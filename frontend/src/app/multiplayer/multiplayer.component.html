@@ -1,6 +1,6 @@
 <section class="flex flex-row justify-center items-center w-[70lvh] h-[50lvh] text-center">
   <section
-    *ngIf="state === 'lookForAGame'"
+    *ngIf="store.getState().gameState.status === 'lookForAGame'"
     class="flex flex-row gap-x-8"
   >
     <button
@@ -10,14 +10,14 @@
       look for a game
     </button>
     <button
-      (click)="this.state = 'joinARoom';"
+      (click)="this.store.dispatch(this.gameStateSlice.actions.update_status('joinARoom'));"
       class="w-[20lvh] flex flex-col hover:text-sky-200 hover:scale-110 transition-transform duration-100 cursor-pointer"
     >
       join/create a room
     </button>
   </section>
   <div
-    *ngIf="state === 'joinARoom'"
+    *ngIf="store.getState().gameState.status === 'joinARoom'"
     class="flex flex-col justify-center items-center gap-y-4">
       <input
         #idInput
@@ -49,13 +49,13 @@
       </div>
   </div>
   <h1
-    *ngIf="state === 'lookingForAGame'"
+    *ngIf="store.getState().gameState.status === 'lookingForAGame'"
     class="w-[32lvh] flex flex-col hover:text-sky-200 cursor-progress"
   >
-    {{lookingForAGame}}
+    {{this.store.getState().gameState.lookingForAGame}}
   </h1>
   <section
-    *ngIf="state === 'game'"
+    *ngIf="store.getState().gameState.status === 'game'"
     class="flex flex-row items-center justify-center gap-x-5"
   >
 
@@ -81,9 +81,9 @@
     </div>
   </section>
   <h1
-    *ngIf="state === 'gameOver'"
+    *ngIf="store.getState().gameState.status === 'gameOver'"
     class="w-[32lvh] flex flex-col hover:text-sky-200 cursor-progress"
   >
-    {{game_over_message}}
+    {{this.store.getState().gameState.game_over_message}}
   </h1>
 </section>

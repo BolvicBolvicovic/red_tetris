@@ -1,7 +1,9 @@
 import { Component, HostListener, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TetrisService } from './tetris.service';
-import { GameEngine } from './game-engine';
+import { createSlice } from '@reduxjs/toolkit'
+import type { PayloadAction } from '@reduxjs/toolkit'
+import { configureStore } from '@reduxjs/toolkit';
 
 @Component({
   selector: 'app-tetris',
@@ -10,59 +12,103 @@ import { GameEngine } from './game-engine';
   styleUrl: './tetris.component.css'
 })
 export class TetrisComponent implements OnInit {
-  tetrisService: TetrisService = inject(TetrisService);
-  state: string = "play";
-  timePerTurn: number = 500;
-  scoreLimit: number = 500;
-  gameEngine: GameEngine = this.tetrisService.newGameEngine(true);
+  readonly tetrisService: TetrisService = inject(TetrisService);
+  readonly initialGameState = {
+    gameEngine: this.tetrisService.newGameEngine(true),
+    timePerTurn: 500,
+    scoreLimit: 500,
+    status: "play",
+  }
+  readonly gameStateSlice = createSlice({
+    name: 'gameState',
+    initialState: this.initialGameState,
+    reducers: {
+      switch_status: (state, action: PayloadAction<string>) => {
+        if (action.payload !== "over" && state.status !== "over")
+          state.status = state.status !== "play" ? "play" : "pause";
+        else
+          state.status = "over";
+      },
+      translate_piece_down: state => {
+        state.gameEngine = this.tetrisService.translate_piece_down(state.gameEngine);
+      },
+      rotate_piece: state => {
+        state.gameEngine = this.tetrisService.rotate_piece(state.gameEngine);
+      },
+      translate_piece_side: (state, action: PayloadAction<number>) => {
+        state.gameEngine = this.tetrisService.translate_piece_side(state.gameEngine, action.payload);
+      },
+      next_turn: state => {
+        state.gameEngine = this.tetrisService.addRandomPiece(this.tetrisService.translate_piece_down(state.gameEngine));
+      },
+      update_scoreLimit: state => {
+        state.scoreLimit *= 1.8;
+      },
+      update_timePerTurn: state => {
+        state.timePerTurn *= 0.8;
+      }
+    }
+  });
+  readonly store = configureStore({
+    reducer: {
+      gameState: this.gameStateSlice.reducer
+    }
+  })
 
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
-    if (this.state != "play" && !this.gameEngine.game_over)
+    const currentState = this.store.getState();
+    const actions = this.gameStateSlice.actions;
+    if (currentState.gameState.status != "play" && !currentState.gameState.gameEngine.game_over)
       switch (event.key) {
         case 'ArrowDown':
-          this.gameEngine = this.tetrisService.translate_piece_down(this.gameEngine);
+          this.store.dispatch(actions.translate_piece_down());
           break;
         case 'ArrowUp':
-          this.gameEngine = this.tetrisService.rotate_piece(this.gameEngine);
+          this.store.dispatch(actions.rotate_piece());
           break;
         case 'ArrowLeft':
-          this.gameEngine = this.tetrisService.translate_piece_side(this.gameEngine, -1);
+          this.store.dispatch(actions.translate_piece_side(-1));
           break;
         case 'ArrowRight':
-          this.gameEngine = this.tetrisService.translate_piece_side(this.gameEngine, 1);
+          this.store.dispatch(actions.translate_piece_side(1));
           break;
       }
   }
 
-  switch_state() {
-    if (this.state != "over")
-      this.state = this.state != "play" ? "play" : "pause";
-  }
 
   getCellColor(num: number): string {
     return num !== 0 ? '#' + num.toString(16).padStart(6, "0") : '#000000';
   }
 
+  switch_status() {
+    this.store.dispatch(this.gameStateSlice.actions.switch_status(""));
+  }
+
   ngOnInit() {
     const game_loop = () => {
-      if (this.gameEngine.game_over)
-        this.state = "over";
-      if (this.gameEngine.score >= this.scoreLimit) {
-        this.scoreLimit *= 1.8;
+      const currentState = this.store.getState().gameState;
+      const gameEngine = currentState.gameEngine;
+      const actions = this.gameStateSlice.actions;
+      if (gameEngine.game_over) {
+        this.store.dispatch(actions.switch_status("over"));
+        return;
+      }
+      if (gameEngine.score >= currentState.scoreLimit) {
+        this.store.dispatch(actions.update_scoreLimit());
         update_game_loop();
         return;
       }
-      if (this.state != "play" && !this.gameEngine.game_over)
-        this.gameEngine = this.tetrisService.addRandomPiece(this.tetrisService.translate_piece_down(this.gameEngine));
+      if (currentState.status === "pause")
+        this.store.dispatch(actions.next_turn());
     }
 
-    let interval = setInterval(game_loop, this.timePerTurn);
+    let interval = setInterval(game_loop, this.store.getState().gameState.timePerTurn);
 
     let update_game_loop = () => {
-      this.timePerTurn *= 0.8;
+      this.store.dispatch(this.gameStateSlice.actions.update_scoreLimit());
       clearInterval(interval);
-      interval = setInterval(game_loop, this.timePerTurn);
+      interval = setInterval(game_loop, this.store.getState().gameState.timePerTurn);
     }
   }
 }

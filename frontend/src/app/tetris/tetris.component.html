@@ -1,13 +1,13 @@
 <section class="flex flex-row justify-between gap-x-2 pl-38">
   <div class="grid gap-0"
-       [ngClass]="'grid-cols-' + tetrisService.add_current_piece_to_board(gameEngine).current_board[0].length">
-    <div *ngFor="let num of tetrisService.add_current_piece_to_board(gameEngine).current_board.flat()"
+       [ngClass]="'grid-cols-' + tetrisService.add_current_piece_to_board(store.getState().gameState.gameEngine).current_board[0].length">
+    <div *ngFor="let num of tetrisService.add_current_piece_to_board(store.getState().gameState.gameEngine).current_board.flat()"
          class="w-4 h-4 sm:w-8 sm:h-8 rounded-lg"
          [style.backgroundColor]="getCellColor(num)">
     </div>
   </div>
   <section class="flex flex-col gap-y-2 w-40">
-    <button (click)="switch_state()" class="bg-red-400 rounded w-[8lvh] hover:bg-red-300 active:bg-red-500 cursor-pointer">{{state}}</button>
-    <h1>Score: {{gameEngine.score}}</h1>
+    <button (click)="switch_status()" class="bg-red-400 rounded w-[8lvh] hover:bg-red-300 active:bg-red-500 cursor-pointer">{{store.getState().gameState.status}}</button>
+    <h1>Score: {{store.getState().gameState.gameEngine.score}}</h1>
   </section>
 </section>
