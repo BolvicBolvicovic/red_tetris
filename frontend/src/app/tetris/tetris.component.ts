@@ -95,7 +95,6 @@ export class TetrisComponent implements OnInit {
         return;
       }
       if (gameEngine.score >= currentState.scoreLimit) {
-        this.store.dispatch(actions.update_scoreLimit());
         update_game_loop();
         return;
       }
@@ -107,6 +106,7 @@ export class TetrisComponent implements OnInit {
 
     let update_game_loop = () => {
       this.store.dispatch(this.gameStateSlice.actions.update_scoreLimit());
+      this.store.dispatch(this.gameStateSlice.actions.update_timePerTurn());
       clearInterval(interval);
       interval = setInterval(game_loop, this.store.getState().gameState.timePerTurn);
     }

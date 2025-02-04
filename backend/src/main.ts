@@ -6,7 +6,7 @@ import { GameEngine, generate_random_piece, Room } from "./tetris";
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
-	cors: { origin: "localhost" },
+	cors: { origin: "*" },
 });
 const rooms: Record<string, Room> = {};
 
@@ -19,11 +19,15 @@ io.on("connection", (socket: Socket) => {
 		if (!rooms[roomId]) {
 			socket.emit("unknownRoomId", "Room id does not exist!");
 		}
-
-		if (rooms[roomId].players.length < rooms[roomId].limit) {
+		if (rooms[roomId].players === undefined) {
+			rooms[roomId].players = [{ id: socket.id, gameVue: undefined, game_over: true, currentPieceIndex: 0 }];
+			socket.join(roomId);
+			io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
+		}
+		else if (rooms[roomId].players.length < rooms[roomId].limit) {
 			rooms[roomId].players.push( { id: socket.id, gameVue: undefined, game_over: true, currentPieceIndex: 0 });
 			socket.join(roomId);
-			io.to(roomId).emit("roomUpdate", rooms[roomId]);
+			io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
 		} else {
 			socket.emit("fullRoom", "Room is alrady full!");
 		}
@@ -39,7 +43,8 @@ io.on("connection", (socket: Socket) => {
 				limit: defaultRoomLimit, 
 				pieces: [],
 			}
-			io.to(roomId).emit("roomUpdate", rooms[roomId]);
+			socket.join(roomId);
+			io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
 		} else {
 			socket.emit("existingRoom", "Room id already exist!");
 		}
@@ -56,7 +61,7 @@ io.on("connection", (socket: Socket) => {
 			return player;
 		});
 		rooms[roomId].pieces = Array.from({ length: bufferSizePieces }, () => generate_random_piece());
-		io.to(roomId).emit("roomUpdate", rooms[roomId]);
+		io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
 	});
 
 	socket.on("updateGameEngine", (roomId: string, newGameVue: GameEngine) => {
@@ -64,7 +69,7 @@ io.on("connection", (socket: Socket) => {
 			socket.emit("unknownRoomId", "Room id does not exist!");
 		}
 		if (rooms[roomId].status === "waiting") {
-			socket.emit("gameOver", "Game is over!");
+			socket.emit("gameOver");
 		}
 		rooms[roomId].players = rooms[roomId].players.map(player => { 
 			if (player.id === socket.id) { 
@@ -77,8 +82,10 @@ io.on("connection", (socket: Socket) => {
 			}
 			return player;
 		});
-		if (rooms[roomId].players.every((player) => player.game_over)) rooms[roomId].status = "waiting";
-		io.to(roomId).emit("roomUpdate", rooms[roomId]);
+		const players = rooms[roomId].players.filter((player) => !player.game_over);
+		if (players.length === 1) io.to(players[0].id).emit("gameOver") && (rooms[roomId].status = "waiting");
+		else if (rooms[roomId].players.every((player) => player.game_over)) rooms[roomId].status = "waiting";
+		io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
 	});
 
 	socket.on("leaveRoom", (roomId: string) => {
@@ -87,7 +94,7 @@ io.on("connection", (socket: Socket) => {
 		}
 		rooms[roomId].players = rooms[roomId].players.filter((player) => player.id !== socket.id);
 		socket.leave(roomId);
-		io.to(roomId).emit("roomUpdate", rooms[roomId]);
+		io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
 		if (rooms[roomId].players.length === 0) delete rooms[roomId];
 	});
 
@@ -95,6 +102,7 @@ io.on("connection", (socket: Socket) => {
 		console.log(`User disconnected: ${socket.id}`);
 		for (const roomId in rooms) {
 			rooms[roomId].players = rooms[roomId].players.filter(p => p.id !== socket.id);
+			io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
 			if (rooms[roomId].players.length === 0) {
 				delete rooms[roomId];
 			}
@@ -102,4 +110,4 @@ io.on("connection", (socket: Socket) => {
 	});
 });
 
-server.listen(8080);
+server.listen(8080, "192.168.0.19");

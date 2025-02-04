@@ -5,6 +5,8 @@ import { Multiplayer } from './multiplayer';
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { configureStore } from '@reduxjs/toolkit';
+import { io, Socket } from 'socket.io-client';
+import { GameEngine } from '../tetris/game-engine';
 
 @Component({
   selector: 'app-multiplayer',
@@ -16,17 +18,19 @@ export class MultiplayerComponent {
 
   readonly tetrisService: TetrisService = inject(TetrisService);
   readonly multiplayer: Multiplayer = {
-    my_game: this.tetrisService.newGameEngine(),
-    opp_game: this.tetrisService.newGameEngine(),
+    my_game: undefined,
+    opp_game: undefined,
     game_over: false,
     status: "lookForAGame",
     lookingForAGame: "looking for a game",
+    roomId: "",
+    roomLimit: 0,
     previous_score: 0,
     game_over_message: "",
   };
   readonly blueMask: number = 0x0000ff;
   readonly timePerTurn: number = 500;
-
+  readonly socket: Socket = io("http://192.168.0.19:8080");
   readonly gameStateSlice = createSlice({
     name: 'gameState',
     initialState: this.multiplayer,
@@ -40,23 +44,32 @@ export class MultiplayerComponent {
           : state.lookingForAGame = state.lookingForAGame.slice(0, state.lookingForAGame.length - 3)
       },
       update_game_over_message: state => {
-        state.my_game.game_over
+        state.my_game!.game_over
           ? state.game_over_message = "you lost"
           : state.game_over_message = "you won"
       },
+      update_room: (state, action: PayloadAction<{ id: string, players: GameEngine[] | undefined, limit: number, status: string}>) => {
+        state.roomId = action.payload.id;
+        state.opp_game = action.payload.players;
+        state.roomLimit = action.payload.limit;
+        if (action.payload.status === "in_game")
+          state.status = "gameRoom";
+        else
+          state.status = "gameStart"
+      },
       translate_piece_down: state => {
-        state.my_game = this.tetrisService.translate_piece_down(state.my_game);
+        state.my_game = this.tetrisService.translate_piece_down(state.my_game!);
       },
       rotate_piece: state => {
-        state.my_game = this.tetrisService.rotate_piece(state.my_game);
+        state.my_game = this.tetrisService.rotate_piece(state.my_game!);
       },
       translate_piece_side: (state, action: PayloadAction<number>) => {
-        state.my_game = this.tetrisService.translate_piece_side(state.my_game, action.payload);
+        state.my_game = this.tetrisService.translate_piece_side(state.my_game!, action.payload);
       },
       next_turn: state => {
-        state.opp_game = this.tetrisService.add_undestructable_line(state.opp_game, (state.my_game.score - 10 - state.previous_score) / 100);
-        state.previous_score = state.my_game.score;
-        state.my_game = this.tetrisService.translate_piece_down(state.my_game);
+        //state.opp_game = this.tetrisService.add_undestructable_line(state.opp_game, (state.my_game.score - 10 - state.previous_score) / 100);
+        state.previous_score = state.my_game!.score;
+        state.my_game = this.tetrisService.translate_piece_down(state.my_game!);
       },
     }
   });
@@ -75,13 +88,17 @@ export class MultiplayerComponent {
   }
 
   joinARoom(id: string) {
-    const actions = this.gameStateSlice.actions;
-    this.store.dispatch(actions.update_status(id));
+    this.socket.emit("joinRoom", id);
   }
 
   createARoom(id: string) {
-    const actions = this.gameStateSlice.actions;
-    this.store.dispatch(actions.update_status(id));
+    this.socket.emit("createRoom", id);
+  }
+
+  startGame() {
+    const currentState = this.store.getState().gameState;
+    if (currentState.opp_game !== undefined && currentState.opp_game.length > 1)
+      this.socket.emit("startGame", currentState.roomId);
   }
 
   lookForAGame() {
@@ -103,7 +120,7 @@ export class MultiplayerComponent {
     const actions = this.gameStateSlice.actions;
     const game_loop = () => {
       const currentState = this.store.getState().gameState;
-      if (currentState.opp_game.game_over || currentState.my_game.game_over) {
+      if (currentState.my_game!.game_over) {
         this.store.dispatch(actions.update_status("gameOver"));
         end_game_loop();
         return;
@@ -122,9 +139,15 @@ export class MultiplayerComponent {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
+
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+      return;
+    }
+
     const currentState = this.store.getState();
     const actions = this.gameStateSlice.actions;
-    if (currentState.gameState.status != "play" && !currentState.gameState.my_game.game_over)
+    if (currentState.gameState.status != "play" && !currentState.gameState.my_game!.game_over)
       switch (event.key) {
         case 'ArrowDown':
           this.store.dispatch(actions.translate_piece_down());
@@ -139,6 +162,22 @@ export class MultiplayerComponent {
           this.store.dispatch(actions.translate_piece_side(1));
           break;
       }
+  }
+
+  constructor() {
+    const actions = this.gameStateSlice.actions;
+    this.socket.on("unknownRoomId", (msg: string) => alert(msg));
+    this.socket.on("fullRoom", (msg: string) => alert(msg));
+    this.socket.on("existingRoom", (msg: string) => alert(msg));
+    this.socket.on("gameOver", () => this.store.dispatch(actions.update_status("gameOver")));
+    this.socket.on("roomUpdate", ({
+      id,
+	    players,
+	    limit,
+      status,
+    }) => {
+      this.store.dispatch(actions.update_room({id, players, limit, status}));
+    });
   }
 
 }

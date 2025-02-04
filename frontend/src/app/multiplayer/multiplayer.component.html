@@ -55,15 +55,27 @@
     {{this.store.getState().gameState.lookingForAGame}}
   </h1>
   <section
-    *ngIf="store.getState().gameState.status === 'game'"
+    *ngif="store.getState().gamestate.status === 'gameRoom'"
+    class="flex flex-row items-center justify-center gap-x-5"
+  >
+      <h1 class="w-[32lvh] flex flex-col hover:text-sky-200">currently in game room</h1>
+      <button
+        (click)="startGame()"
+        class="w-[10lvh] flex flex-col hover:text-sky-200 hover:scale-110 transition-transform duration-100 cursor-pointer"
+      >
+        join
+      </button>
+  </section>
+  <section
+    *ngif="store.getState().gamestate.status === 'gameStart'"
     class="flex flex-row items-center justify-center gap-x-5"
   >
 
     <div class="flex flex-col gap-y-2 items-center">
       <h1 class="w-[32lvh] flex flex-col hover:text-sky-200">you</h1>
       <div class="grid gap-0"
-           [ngClass]="'grid-cols-' + tetrisService.add_current_piece_to_board(multiplayer.my_game).current_board[0].length">
-        <div *ngFor="let num of tetrisService.add_current_piece_to_board(multiplayer.my_game).current_board.flat()"
+           [ngClass]="'grid-cols-' + tetrisService.add_current_piece_to_board(multiplayer.my_game!).current_board[0].length">
+        <div *ngFor="let num of tetrisService.add_current_piece_to_board(multiplayer.my_game!).current_board.flat()"
              class="w-4 h-4 sm:w-8 sm:h-8 rounded-lg"
              [style.backgroundColor]="getCellColor(num)">
         </div>
@@ -71,11 +83,13 @@
     </div>
     <div class="flex flex-col gap-y-2 items-center">
       <h1 class="w-[32lvh] flex flex-col hover:text-sky-200">blue</h1>
-      <div class="grid gap-0"
-           [ngClass]="'grid-cols-' + tetrisService.add_current_piece_to_board(multiplayer.opp_game).current_board[0].length">
-        <div *ngFor="let num of multiplayer.opp_game.current_board.flat()"
-             class="w-4 h-4 sm:w-8 sm:h-8 rounded-lg"
-             [style.backgroundColor]="getCellColor(num, blueMask)">
+      <div *ngFor="let opp of multiplayer.opp_game!" class="grid gap-2 max-w-[40lvh]">
+        <div class="grid gap-0"
+             [ngClass]="'grid-cols-' + opp.current_board[0].length">
+          <div *ngFor="let num of opp.current_board.flat()"
+               class="w-4 h-4 sm:w-8 sm:h-8 rounded-lg"
+               [style.backgroundColor]="getCellColor(num, blueMask)">
+          </div>
         </div>
       </div>
     </div>
