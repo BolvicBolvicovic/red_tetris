@@ -407,7 +407,8 @@ export class TetrisService {
   }
 
   can_exist(gameEngine: GameEngine): boolean {
-    for (const {x, y} of gameEngine.current_piece!.boxes) {
+    if (gameEngine.current_piece === undefined) return true;
+    for (const {x, y} of gameEngine.current_piece.boxes) {
       if (x < 0 || x >= this.board_lenght || y < 0 || y >= this.board_height || gameEngine.current_board[y][x] !== 0) return false;
     }
     return true;

@@ -19,6 +19,7 @@ io.on("connection", (socket: Socket) => {
 		if (!rooms[roomId]) {
 			socket.emit("unknownRoomId", "Room id does not exist!");
 			console.log(`id: ${socket.id} -> tried to join room, room id does not exist`);
+			return;
 		}
 		if (rooms[roomId].players === undefined) {
 			rooms[roomId].players = [{ id: socket.id, gameVue: undefined, game_over: true, currentPieceIndex: 0 }];
@@ -49,32 +50,37 @@ io.on("connection", (socket: Socket) => {
 			}
 			socket.join(roomId);
 			io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
+			console.log(`id: ${socket.id} -> create room`);
 		} else {
 			socket.emit("existingRoom", "Room id already exist!");
 			console.log(`id: ${socket.id} -> tried to create room, room id already exists`);
 		}
 	});
 
-	socket.on("startGame", (roomId: string) => {
+	socket.on("startGame", ({roomId, my_game}) => {
 		if (!rooms[roomId]) {
 			socket.emit("unknownRoomId", "Room id does not exist!");
-			console.log(`id: ${socket.id} -> tried to start game, room id does not exist`);
+			console.log(`id: ${socket.id} -> tried to start game, room id "${roomId}" does not exist`);
+			return;
 		}
 		rooms[roomId].status = "in_game";
 		rooms[roomId].players = rooms[roomId].players.map(player => {
 			player.game_over = false;
 			player.currentPieceIndex = 0;
+			player.gameVue = my_game;
 			return player;
 		});
 		rooms[roomId].pieces = Array.from({ length: bufferSizePieces }, () => generate_random_piece());
-		io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
+		io.to(roomId).emit("newPiece", rooms[roomId].pieces[0]);
+		io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: "gameStart" });
 		console.log(`id: ${socket.id} -> start game`);
 	});
 
 	socket.on("updateGameEngine", (roomId: string, newGameVue: GameEngine) => {
 		if (!rooms[roomId]) {
 			socket.emit("unknownRoomId", "Room id does not exist!");
-			console.log(`id: ${socket.id} -> tried to update engine, room id does not exist`);
+			console.log(`id: ${socket.id} -> tried to update engine, room id "${roomId}" does not exist`);
+			return;
 		}
 		if (rooms[roomId].status === "waiting") {
 			socket.emit("gameOver");
@@ -88,6 +94,7 @@ io.on("connection", (socket: Socket) => {
 				if (player.currentPieceIndex === rooms[roomId].pieces.length) {
 					rooms[roomId].pieces = rooms[roomId].pieces.concat(Array.from({ length: bufferSizePieces }, () => generate_random_piece()));
 				}
+				socket.emit("newPiece", rooms[roomId].pieces[player.currentPieceIndex]);
 			}
 			return player;
 		});
@@ -95,17 +102,19 @@ io.on("connection", (socket: Socket) => {
 		if (players.length === 1) io.to(players[0].id).emit("gameOver") && (rooms[roomId].status = "waiting");
 		else if (rooms[roomId].players.every((player) => player.game_over)) rooms[roomId].status = "waiting";
 		io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
-			console.log(`id: ${socket.id} -> engine updated`);
+		console.log(`id: ${socket.id} -> engine updated`);
 	});
 
 	socket.on("leaveRoom", (roomId: string) => {
 		if (!rooms[roomId]) {
 			socket.emit("unknownRoomId", "Room id does not exist!");
+			return;
 		}
 		rooms[roomId].players = rooms[roomId].players.filter((player) => player.id !== socket.id);
 		socket.leave(roomId);
 		io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
 		if (rooms[roomId].players.length === 0) delete rooms[roomId];
+		console.log(`id: ${socket.id} -> leaves room`);
 	});
 
 	socket.on("disconnect", () => {
