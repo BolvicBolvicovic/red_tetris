@@ -22,13 +22,13 @@ io.on("connection", (socket: Socket) => {
 			return;
 		}
 		if (rooms[roomId].players === undefined) {
-			rooms[roomId].players = [{ id: socket.id, gameVue: undefined, game_over: true, currentPieceIndex: 0 }];
+			rooms[roomId].players = [{ id: socket.id, gameVue: undefined, game_over: true, currentPieceIndex: 0, previous_score: 0, }];
 			socket.join(roomId);
 			io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
 			console.log(`id: ${socket.id} -> tried to join room, room was empty but still joined`);
 		}
 		else if (rooms[roomId].players.length < rooms[roomId].limit) {
-			rooms[roomId].players.push( { id: socket.id, gameVue: undefined, game_over: true, currentPieceIndex: 0 });
+			rooms[roomId].players.push( { id: socket.id, gameVue: undefined, game_over: true, currentPieceIndex: 0, previous_score: 0, });
 			socket.join(roomId);
 			io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
 			console.log(`id: ${socket.id} -> tried to join room, room joined`);
@@ -43,7 +43,7 @@ io.on("connection", (socket: Socket) => {
 			rooms[roomId] = { 
 				id: roomId, 
 				roomLeader: socket.id, 
-				players: [ { id: socket.id, gameVue: undefined, game_over: true, currentPieceIndex: 0 } ], 
+				players: [ { id: socket.id, gameVue: undefined, game_over: true, currentPieceIndex: 0, previous_score: 0 } ], 
 				status : "waiting", 
 				limit: defaultRoomLimit, 
 				pieces: [],
@@ -86,11 +86,17 @@ io.on("connection", (socket: Socket) => {
 			socket.emit("gameOver");
 			console.log(`id: ${socket.id} -> tried to update engine, game over`);
 		}
+		let add_undestructable_line: number = 0;
 		rooms[roomId].players = rooms[roomId].players.map(player => { 
-			if (player.id === socket.id) { 
+			if (player.id === socket.id && !player.game_over && !player.gameVue?.game_over) { 
 				player.gameVue = newGameVue; 
+				if (player.gameVue.game_over) {
+					player.game_over = true;
+					return player;
+				}
 				player.currentPieceIndex += 1;
-				if (player.gameVue.game_over) player.game_over = true;
+				add_undestructable_line = (player.gameVue.score - 10 - player.previous_score) / 100;
+				player.previous_score = player.gameVue.score;
 				if (player.currentPieceIndex === rooms[roomId].pieces.length) {
 					rooms[roomId].pieces = rooms[roomId].pieces.concat(Array.from({ length: bufferSizePieces }, () => generate_random_piece()));
 				}
@@ -98,6 +104,7 @@ io.on("connection", (socket: Socket) => {
 			}
 			return player;
 		});
+		if (add_undestructable_line > 0) rooms[roomId].players.forEach((player) => { if (player.id !== socket.id) io.to(player.id).emit("add_undestructable_line", add_undestructable_line) });
 		const players = rooms[roomId].players.filter((player) => !player.game_over);
 		if (players.length === 1) io.to(players[0].id).emit("gameOver") && (rooms[roomId].status = "waiting");
 		else if (rooms[roomId].players.every((player) => player.game_over)) rooms[roomId].status = "waiting";

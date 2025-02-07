@@ -430,7 +430,7 @@ export class TetrisService {
     const new_gameEngine_with_rotating_piece: GameEngine = {
       current_board: gameEngine.current_board,
       current_piece: next_pos_piece,
-      game_over: false,
+      game_over: gameEngine.game_over,
       score: gameEngine.score,
     }
     return this.can_exist(this.rotate_piece(new_gameEngine_with_rotating_piece))
@@ -444,7 +444,7 @@ export class TetrisService {
           boxes: next_pos_piece.boxes,
           can_rotate: false,
         },
-        game_over: false,
+        game_over: gameEngine.game_over,
         score: gameEngine.score,
       }
   }

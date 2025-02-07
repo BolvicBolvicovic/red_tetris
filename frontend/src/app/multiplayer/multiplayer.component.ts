@@ -50,6 +50,11 @@ export class MultiplayerComponent {
         state.my_game!.game_over
           ? state.game_over_message = "you lost"
           : state.game_over_message = "you won"
+        state.my_game = this.tetrisService.newGameEngine();
+        state.opp_game = undefined;
+        state.roomId = "";
+        state.roomLimit = 0;
+        state.previous_score = 0;
       },
       update_room: (state, action: PayloadAction<{ id: string, players: GameEngine[] | undefined, limit: number, status: string}>) => {
         state.opp_game = action.payload.players;
@@ -62,6 +67,8 @@ export class MultiplayerComponent {
       translate_piece_down: state => {
         if (state.my_game === undefined || state.my_game.current_piece === undefined) return;
         state.my_game = this.tetrisService.translate_piece_down(state.my_game!);
+        if (!this.tetrisService.can_exist(this.tetrisService.addRandomPiece(state.my_game))) state.my_game.game_over = true;
+        if (state.my_game.current_piece === undefined) this.socket.emit("updateGameEngine", state.roomId, state.my_game);
       },
       rotate_piece: state => {
         if (state.my_game === undefined || state.my_game.current_piece === undefined) return;
@@ -71,12 +78,16 @@ export class MultiplayerComponent {
         if (state.my_game === undefined || state.my_game.current_piece === undefined) return;
         state.my_game = this.tetrisService.translate_piece_side(state.my_game!, action.payload);
       },
+      add_undestructable_line: (state, action: PayloadAction<number>) => {
+        if (state.my_game === undefined || state.my_game.current_piece === undefined) return;
+        state.my_game = this.tetrisService.add_undestructable_line(state.my_game, action.payload);
+        if (!this.tetrisService.can_exist(this.tetrisService.addRandomPiece(state.my_game))) state.my_game.game_over = true;
+        if (state.my_game.current_piece === undefined) this.socket.emit("updateGameEngine", state.roomId, state.my_game);
+      },
       next_turn: state => {
-        //state.opp_game = this.tetrisService.add_undestructable_line(state.opp_game, (state.my_game.score - 10 - state.previous_score) / 100);
-        //state.previous_score = state.my_game!.score;
         if (state.my_game === undefined) return;
-        state.my_game = this.tetrisService.translate_piece_down(state.my_game);
         if (!this.tetrisService.can_exist(state.my_game)) state.my_game.game_over = true;
+        state.my_game = this.tetrisService.translate_piece_down(state.my_game);
         if (state.my_game.current_piece === undefined) this.socket.emit("updateGameEngine", state.roomId, state.my_game);
       },
       newPiece: (state, action: PayloadAction<Piece>) => {
@@ -94,7 +105,9 @@ export class MultiplayerComponent {
     return num !== 0
       ? num === this.tetrisService.undestructable_line_color
         ? '#' + (num).toString(16).padStart(6, "0")
-        : '#' + (num & mask).toString(16).padStart(6, "0")
+        : (num & mask) === 0
+          ? '#0000b0'
+          : '#' + (num & mask).toString(16).padStart(6, "0")
       : '#000000';
   }
 
@@ -110,7 +123,7 @@ export class MultiplayerComponent {
 
   startGame() {
     const currentState = this.store.getState().gameState;
-    if (currentState.opp_game !== undefined && currentState.opp_game.length > 1)
+    if (currentState.opp_game !== undefined && currentState.opp_game.length > 0)
       this.socket.emit("startGame", { roomId: currentState.roomId, my_game: currentState.my_game });
   }
 
@@ -133,7 +146,9 @@ export class MultiplayerComponent {
     const actions = this.gameStateSlice.actions;
     const game_loop = () => {
       const currentState = this.store.getState().gameState;
-      if (currentState.my_game?.current_piece === undefined) return;
+      if (currentState.my_game?.current_piece === undefined) {
+        return;
+      }
       if (currentState.my_game!.game_over) {
         this.store.dispatch(actions.update_status("gameOver"));
         end_game_loop();
@@ -180,6 +195,7 @@ export class MultiplayerComponent {
 
   constructor() {
     const actions = this.gameStateSlice.actions;
+    this.socket.on("add_undestructable_line", (nb: number) => this.store.dispatch(actions.add_undestructable_line(nb)));
     this.socket.on("unknownRoomId", (msg: string) => alert(msg));
     this.socket.on("fullRoom", (msg: string) => alert(msg));
     this.socket.on("existingRoom", (msg: string) => alert(msg));
@@ -194,10 +210,12 @@ export class MultiplayerComponent {
         this.store.dispatch(actions.update_room({id, players, limit, status: "in_game"}));
         this.start_loop();
       }
-      else
+      else {
         this.store.dispatch(actions.update_room({id, players, limit, status}));
+      }
     });
     this.socket.on("newPiece", (piece: Piece) => {
+      console.log(`newPiece: ${JSON.stringify(piece)}`);
       if (this.store.getState().gameState.my_game?.current_piece === undefined)
         this.store.dispatch(actions.newPiece(piece));
     });

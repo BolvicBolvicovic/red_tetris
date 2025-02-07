@@ -58,7 +58,7 @@
     *ngIf="store.getState().gameState.status === 'gameRoom'"
     class="flex flex-row items-center justify-center gap-x-5"
   >
-    <h1 class="w-[32lvh] flex flex-col hover:text-sky-200">currently in game room with {{this.store.getState().gameState.opp_game!.length - 1}} other players</h1>
+    <h1 class="w-[32lvh] flex flex-col hover:text-sky-200">currently in game room with {{this.store.getState().gameState.opp_game!.length}} other players</h1>
       <button
         (click)="startGame()"
         class="w-[20lvh] flex flex-col hover:text-sky-200 hover:scale-110 transition-transform duration-100 cursor-pointer"

@@ -26,6 +26,7 @@ export interface Player {
 	gameVue: GameEngine | undefined,
 	game_over: boolean,
 	currentPieceIndex: number,
+	previous_score: number,
 }
 
 export interface Room {
