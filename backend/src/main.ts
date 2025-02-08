@@ -85,6 +85,7 @@ io.on("connection", (socket: Socket) => {
 		if (rooms[roomId].status === "waiting") {
 			socket.emit("gameOver");
 			console.log(`id: ${socket.id} -> tried to update engine, game over`);
+			return;
 		}
 		let add_undestructable_line: number = 0;
 		rooms[roomId].players = rooms[roomId].players.map(player => { 
@@ -92,6 +93,8 @@ io.on("connection", (socket: Socket) => {
 				player.gameVue = newGameVue; 
 				if (player.gameVue.game_over) {
 					player.game_over = true;
+					socket.emit("gameOver");
+					socket.leave(roomId);
 					return player;
 				}
 				player.currentPieceIndex += 1;
@@ -106,8 +109,12 @@ io.on("connection", (socket: Socket) => {
 		});
 		if (add_undestructable_line > 0) rooms[roomId].players.forEach((player) => { if (player.id !== socket.id) io.to(player.id).emit("add_undestructable_line", add_undestructable_line) });
 		const players = rooms[roomId].players.filter((player) => !player.game_over);
-		if (players.length === 1) io.to(players[0].id).emit("gameOver") && (rooms[roomId].status = "waiting");
-		else if (rooms[roomId].players.every((player) => player.game_over)) rooms[roomId].status = "waiting";
+		if (players.length === 1) {
+			io.to(roomId).emit("gameOver");
+			delete rooms[roomId];
+			return;
+		}
+		else if (rooms[roomId].players.every((player) => player.game_over)) delete rooms[roomId];
 		io.to(roomId).emit("roomUpdate", { id: rooms[roomId].id, players: rooms[roomId].players.map(player => player.gameVue), limit: rooms[roomId].limit, status: rooms[roomId].status } );
 		console.log(`id: ${socket.id} -> engine updated`);
 	});
@@ -136,4 +143,4 @@ io.on("connection", (socket: Socket) => {
 	});
 });
 
-server.listen(8080, "192.168.0.19");
+server.listen(8080, "0.0.0.0");

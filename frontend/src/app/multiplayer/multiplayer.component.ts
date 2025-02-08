@@ -37,6 +37,18 @@ export class MultiplayerComponent {
     reducers: {
       update_status: (state, action: PayloadAction<string>) => {
           state.status = action.payload;
+          if (state.status === "gameOver") {
+            state.my_game!.game_over
+              ? state.game_over_message = "you lost"
+              : state.game_over_message = "you won"
+            state.my_game = this.tetrisService.newGameEngine();
+            state.opp_game = undefined;
+            state.roomId = "";
+            state.roomLimit = 0;
+            state.previous_score = 0;
+
+            setTimeout(() => this.store.dispatch(this.gameStateSlice.actions.update_status("lookForAGame")), 3000);
+          }
       },
       update_lookingForAGame: state => {
         state.lookingForAGame.length < 21
@@ -45,16 +57,6 @@ export class MultiplayerComponent {
       },
       update_room_id: (state, action: PayloadAction<string>) => {
         state.roomId = action.payload;
-      },
-      update_game_over_message: state => {
-        state.my_game!.game_over
-          ? state.game_over_message = "you lost"
-          : state.game_over_message = "you won"
-        state.my_game = this.tetrisService.newGameEngine();
-        state.opp_game = undefined;
-        state.roomId = "";
-        state.roomLimit = 0;
-        state.previous_score = 0;
       },
       update_room: (state, action: PayloadAction<{ id: string, players: GameEngine[] | undefined, limit: number, status: string}>) => {
         state.opp_game = action.payload.players;
@@ -92,6 +94,10 @@ export class MultiplayerComponent {
       },
       newPiece: (state, action: PayloadAction<Piece>) => {
         state.my_game!.current_piece = action.payload;
+        if (!this.tetrisService.can_exist(this.tetrisService.add_current_piece_to_board(state.my_game!))) {
+          state.my_game!.game_over = true;
+          this.socket.emit("updateGameEngine", state.roomId, state.my_game);
+        }
       },
     }
   });
@@ -150,7 +156,6 @@ export class MultiplayerComponent {
         return;
       }
       if (currentState.my_game!.game_over) {
-        this.store.dispatch(actions.update_status("gameOver"));
         end_game_loop();
         return;
       }
@@ -161,8 +166,6 @@ export class MultiplayerComponent {
 
     let end_game_loop = () => {
       clearInterval(interval);
-      this.store.dispatch(actions.update_game_over_message());
-      setTimeout(() => this.store.dispatch(actions.update_status("lookForAGame")), 3000);
     }
   }
 
@@ -206,6 +209,7 @@ export class MultiplayerComponent {
 	    limit,
       status,
     }) => {
+      if (this.store.getState().gameState.status === "gameOver") return;
       if (status === "gameStart") {
         this.store.dispatch(actions.update_room({id, players, limit, status: "in_game"}));
         this.start_loop();

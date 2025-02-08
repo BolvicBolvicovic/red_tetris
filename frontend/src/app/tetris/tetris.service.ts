@@ -10,6 +10,7 @@ export class TetrisService {
   readonly board_height: number = 20;
   readonly board_lenght: number = 10;
   readonly undestructable_line_color: number = 0xd9d9d9;
+  readonly superposed_color: number = 0xb2b2ff;
 
   newGameEngine(random: boolean = false): GameEngine {
     return {
@@ -407,6 +408,7 @@ export class TetrisService {
   }
 
   can_exist(gameEngine: GameEngine): boolean {
+    if (gameEngine.current_board.some((arr) => arr.some(num => num === this.superposed_color))) return false;
     if (gameEngine.current_piece === undefined) return true;
     for (const {x, y} of gameEngine.current_piece.boxes) {
       if (x < 0 || x >= this.board_lenght || y < 0 || y >= this.board_height || gameEngine.current_board[y][x] !== 0) return false;
@@ -502,12 +504,12 @@ export class TetrisService {
       if (y === -1) return;
       new_board[y][x] = new_board[y][x] === 0
         ? gameEngine.current_piece!.color
-        : 0xb2b2ff;
+        : this.superposed_color;
     });
     return {
       current_board: new_board,
       current_piece: undefined,
-      game_over: false,
+      game_over: gameEngine.game_over,
       score: gameEngine.score,
     };
   }
