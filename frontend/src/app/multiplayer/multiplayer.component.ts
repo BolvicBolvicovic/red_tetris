@@ -25,8 +25,10 @@ export class MultiplayerComponent {
     lookingForAGame: "looking for a game",
     roomId: "",
     roomLimit: 0,
+    boardId: -1,
     previous_score: 0,
     game_over_message: "",
+    intervalId: null,
   };
   readonly blueMask: number = 0x0000ff;
   readonly timePerTurn: number = 500;
@@ -35,13 +37,18 @@ export class MultiplayerComponent {
     name: 'gameState',
     initialState: this.multiplayer,
     reducers: {
+      set_intervalId: (state, action: PayloadAction<ReturnType<typeof setInterval>>) => {
+        state.intervalId = action.payload;
+      },
       update_status: (state, action: PayloadAction<string>) => {
           state.status = action.payload;
           if (state.status === "gameOver") {
+            if (state.intervalId !== null) clearInterval(state.intervalId);
             state.my_game!.game_over
               ? state.game_over_message = "you lost"
               : state.game_over_message = "you won"
             state.my_game = this.tetrisService.newGameEngine();
+            state.boardId = -1;
             state.opp_game = undefined;
             state.roomId = "";
             state.roomLimit = 0;
@@ -59,17 +66,23 @@ export class MultiplayerComponent {
         state.roomId = action.payload;
       },
       update_room: (state, action: PayloadAction<{ id: string, players: GameEngine[] | undefined, limit: number, status: string}>) => {
-        state.opp_game = action.payload.players;
-        state.roomLimit = action.payload.limit;
+        if (state.boardId === -1 && action.payload.players !== undefined)
+          state.boardId = action.payload.players.length - 1;
         if (action.payload.status === "in_game")
           state.status = "gameStart";
         else
           state.status = "gameRoom"
+        state.opp_game = action.payload.players?.filter((_, i) => i !== state.boardId);
+        state.roomLimit = action.payload.limit;
       },
       translate_piece_down: state => {
         if (state.my_game === undefined || state.my_game.current_piece === undefined) return;
-        state.my_game = this.tetrisService.translate_piece_down(state.my_game!);
-        if (!this.tetrisService.can_exist(this.tetrisService.addRandomPiece(state.my_game))) state.my_game.game_over = true;
+        state.my_game = this.tetrisService.translate_piece_down(state.my_game);
+        if (!this.tetrisService.can_exist(this.tetrisService.addRandomPiece(state.my_game))) {
+          state.my_game.game_over = true;
+          this.socket.emit("updateGameEngine", state.roomId, state.my_game);
+          return;
+        }
         if (state.my_game.current_piece === undefined) this.socket.emit("updateGameEngine", state.roomId, state.my_game);
       },
       rotate_piece: state => {
@@ -83,14 +96,10 @@ export class MultiplayerComponent {
       add_undestructable_line: (state, action: PayloadAction<number>) => {
         if (state.my_game === undefined || state.my_game.current_piece === undefined) return;
         state.my_game = this.tetrisService.add_undestructable_line(state.my_game, action.payload);
-        if (!this.tetrisService.can_exist(this.tetrisService.addRandomPiece(state.my_game))) state.my_game.game_over = true;
-        if (state.my_game.current_piece === undefined) this.socket.emit("updateGameEngine", state.roomId, state.my_game);
-      },
-      next_turn: state => {
-        if (state.my_game === undefined) return;
-        if (!this.tetrisService.can_exist(state.my_game)) state.my_game.game_over = true;
-        state.my_game = this.tetrisService.translate_piece_down(state.my_game);
-        if (state.my_game.current_piece === undefined) this.socket.emit("updateGameEngine", state.roomId, state.my_game);
+        if (!this.tetrisService.can_exist(this.tetrisService.add_current_piece_to_board(state.my_game))) {
+          state.my_game.game_over = true;
+          this.socket.emit("updateGameEngine", state.roomId, state.my_game);
+        }
       },
       newPiece: (state, action: PayloadAction<Piece>) => {
         state.my_game!.current_piece = action.payload;
@@ -152,21 +161,12 @@ export class MultiplayerComponent {
     const actions = this.gameStateSlice.actions;
     const game_loop = () => {
       const currentState = this.store.getState().gameState;
-      if (currentState.my_game?.current_piece === undefined) {
+      if (currentState.my_game?.current_piece === undefined || currentState.my_game!.game_over) {
         return;
       }
-      if (currentState.my_game!.game_over) {
-        end_game_loop();
-        return;
-      }
-      this.store.dispatch(actions.next_turn());
+      this.store.dispatch(actions.translate_piece_down());
     }
-
-    let interval = setInterval(game_loop, this.timePerTurn);
-
-    let end_game_loop = () => {
-      clearInterval(interval);
-    }
+    this.store.dispatch(actions.set_intervalId(setInterval(game_loop, this.timePerTurn)));
   }
 
   @HostListener('window:keydown', ['$event'])

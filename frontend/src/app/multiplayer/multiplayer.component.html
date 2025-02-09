@@ -83,7 +83,7 @@
     </div>
     <div class="flex flex-col gap-y-2 items-center">
       <h1 class="w-[32lvh] flex flex-col hover:text-sky-200">blue</h1>
-      <div *ngFor="let opp of store.getState().gameState.opp_game!" class="grid gap-2 max-w-[40lvh]">
+      <div *ngFor="let opp of store.getState().gameState.opp_game!" class="flex flex-row flex-wrap justify-center items-center gap-2 max-h-[40lvh] max-w-[40lvh]">
         <div class="grid gap-0"
              [ngClass]="'grid-cols-' + opp.current_board[0].length">
           <div *ngFor="let num of opp.current_board.flat()"

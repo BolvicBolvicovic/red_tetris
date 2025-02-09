@@ -487,14 +487,19 @@ export class TetrisService {
   }
 
   add_undestructable_line(gameEngine: GameEngine, lines: number): GameEngine {
-    return this.next_board_state({
+    const next_board: GameEngine = {
       current_board: gameEngine.current_board
         .slice(lines)
         .concat(Array.from({length: lines}, ()=> Array.from({ length: this.board_lenght}, () => this.undestructable_line_color))),
       current_piece: gameEngine.current_piece,
       game_over: gameEngine.game_over,
       score: gameEngine.score,
-    });
+    };
+    for (const {x, y} of next_board.current_piece!.boxes) {
+      if (y + 1 === this.board_height || gameEngine.current_board[y + 1][x] !== 0)
+        return this.next_board_state(this.add_current_piece_to_board(gameEngine));
+    }
+    return this.next_board_state(next_board);
   }
 
   add_current_piece_to_board(gameEngine: GameEngine): GameEngine {
@@ -504,7 +509,9 @@ export class TetrisService {
       if (y === -1) return;
       new_board[y][x] = new_board[y][x] === 0
         ? gameEngine.current_piece!.color
-        : this.superposed_color;
+        : new_board[y][x] === this.undestructable_line_color
+          ? this.undestructable_line_color
+          : this.superposed_color;
     });
     return {
       current_board: new_board,

@@ -8,6 +8,8 @@ export interface Multiplayer {
   lookingForAGame: string,
   roomId: string,
   roomLimit: number,
+  boardId: number,
   previous_score: number,
   game_over_message: string,
+  intervalId: ReturnType<typeof setInterval> | null,
 }
