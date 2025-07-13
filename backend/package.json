@@ -4,6 +4,7 @@
   "description": "backend for red-tetris",
   "main": "index.ts",
   "scripts": {
+    "dev": "ts-node src/main.ts",
     "test": "test"
   },
   "keywords": [
