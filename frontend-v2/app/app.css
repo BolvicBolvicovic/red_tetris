@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+html,
+body {
+  @apply bg-white dark:bg-gray-950;
+  overflow: hidden; /* Prevent page scrolling */
+  height: 100vh;
+
+  @media (prefers-color-scheme: dark) {
+    color-scheme: dark;
+  }
+}
+
+/* Prevent arrow keys from scrolling the page */
+html {
+  scroll-behavior: auto;
+}
+
+/* Ensure root element takes full height */
+#root {
+  height: 100vh;
+  overflow: hidden;
+}
